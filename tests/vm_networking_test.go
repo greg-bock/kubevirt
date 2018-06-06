@@ -54,6 +54,8 @@ var _ = Describe("Networking", func() {
 
 	var inboundVM *v1.VirtualMachine
 	var outboundVM *v1.VirtualMachine
+	var inboundVM_podnet *v1.VirtualMachine
+	var outboundVM_podnet *v1.VirtualMachine
 
 	const testPort = 1500
 
@@ -97,47 +99,72 @@ var _ = Describe("Networking", func() {
 	tests.BeforeAll(func() {
 		tests.BeforeTestCleanup()
 
-		// Create and start inbound VM
-		inboundVM = tests.NewRandomVMWithEphemeralDiskAndUserdata(tests.RegistryDiskFor(tests.RegistryDiskCirros), "#!/bin/bash\necho 'hello'\n")
-		inboundVM.Labels = map[string]string{"expose": "me"}
-		inboundVM.Spec.Subdomain = "myvm"
-		inboundVM.Spec.Hostname = "my-subdomain"
-		_, err = virtClient.VM(tests.NamespaceTestDefault).Create(inboundVM)
-		Expect(err).ToNot(HaveOccurred())
+		prepareVMs := func(withPodNetwork bool) (*v1.VirtualMachine, *v1.VirtualMachine) {
+			// Prepare inbound and outbound VM definitions
+			inboundVM := tests.NewRandomVMWithEphemeralDiskAndUserdata(tests.RegistryDiskFor(tests.RegistryDiskCirros), "#!/bin/bash\necho 'hello'\n")
+			inboundVM.Labels = map[string]string{"expose": "me"}
+			inboundVM.Spec.Subdomain = "myvm"
+			inboundVM.Spec.Hostname = "my-subdomain"
+			outboundVM := tests.NewRandomVMWithEphemeralDiskAndUserdata(tests.RegistryDiskFor(tests.RegistryDiskCirros), "#!/bin/bash\necho 'hello'\n")
 
-		// Create and start outbound VM
-		outboundVM = tests.NewRandomVMWithEphemeralDiskAndUserdata(tests.RegistryDiskFor(tests.RegistryDiskCirros), "#!/bin/bash\necho 'hello'\n")
-		_, err = virtClient.VM(tests.NamespaceTestDefault).Create(outboundVM)
-		Expect(err).ToNot(HaveOccurred())
+			if withPodNetwork {
+				v1.SetDefaults_NetworkInterface(inboundVM)
+				v1.SetDefaults_NetworkInterface(outboundVM)
+				for _, networkVm := range []*v1.VirtualMachine{inboundVM, outboundVM} {
+					Expect(networkVm.Spec.Domain.Devices.Interfaces).ToNot(BeZero())
+					Expect(networkVm.Spec.Networks).ToNot(BeZero())
+				}
+			} else {
+				for _, networkVm := range []*v1.VirtualMachine{inboundVM, outboundVM} {
+					Expect(networkVm.Spec.Domain.Devices.Interfaces).To(BeZero())
+					Expect(networkVm.Spec.Networks).To(BeZero())
+				}
+			}
 
-		for _, networkVm := range []*v1.VirtualMachine{inboundVM, outboundVM} {
-			waitUntilVmReady(networkVm, tests.LoggedInCirrosExpecter)
+			// Create and start VMs
+			_, err = virtClient.VM(tests.NamespaceTestDefault).Create(inboundVM)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = virtClient.VM(tests.NamespaceTestDefault).Create(outboundVM)
+			Expect(err).ToNot(HaveOccurred())
+
+			for _, networkVm := range []*v1.VirtualMachine{inboundVM, outboundVM} {
+				waitUntilVmReady(networkVm, tests.LoggedInCirrosExpecter)
+			}
+
+			inboundVM, err = virtClient.VM(tests.NamespaceTestDefault).Get(inboundVM.Name, v13.GetOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			expecter, _, err := tests.NewConsoleExpecter(virtClient, inboundVM, 10*time.Second)
+			Expect(err).ToNot(HaveOccurred())
+			defer expecter.Close()
+			resp, err := expecter.ExpectBatch([]expect.Batcher{
+				&expect.BSnd{S: "\n"},
+				&expect.BExp{R: "\\$ "},
+				&expect.BSnd{S: "screen -d -m nc -klp 1500 -e echo -e \"Hello World!\"\n"},
+				&expect.BExp{R: "\\$ "},
+				&expect.BSnd{S: "echo $?\n"},
+				&expect.BExp{R: "0"},
+			}, 60*time.Second)
+			log.DefaultLogger().Infof("%v", resp)
+			Expect(err).ToNot(HaveOccurred())
+
+			outboundVM, err = virtClient.VM(tests.NamespaceTestDefault).Get(outboundVM.Name, v13.GetOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			return inboundVM, outboundVM
 		}
 
-		inboundVM, err = virtClient.VM(tests.NamespaceTestDefault).Get(inboundVM.Name, v13.GetOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		expecter, _, err := tests.NewConsoleExpecter(virtClient, inboundVM, 10*time.Second)
-		Expect(err).ToNot(HaveOccurred())
-		defer expecter.Close()
-		resp, err := expecter.ExpectBatch([]expect.Batcher{
-			&expect.BSnd{S: "\n"},
-			&expect.BExp{R: "\\$ "},
-			&expect.BSnd{S: "screen -d -m nc -klp 1500 -e echo -e \"Hello World!\"\n"},
-			&expect.BExp{R: "\\$ "},
-			&expect.BSnd{S: "echo $?\n"},
-			&expect.BExp{R: "0"},
-		}, 60*time.Second)
-		log.DefaultLogger().Infof("%v", resp)
-		Expect(err).ToNot(HaveOccurred())
-
-		outboundVM, err = virtClient.VM(tests.NamespaceTestDefault).Get(outboundVM.Name, v13.GetOptions{})
-		Expect(err).ToNot(HaveOccurred())
+		inboundVM, outboundVM = prepareVMs(false)
+		// same but with explicit pod network definition
+		inboundVM_podnet, outboundVM_podnet = prepareVMs(true)
 	})
 
-	Context("VirtualMachine attached to the pod network", func() {
-
+	declareConnectivityCases := func(inboundVMRef **v1.VirtualMachine, outboundVMRef **v1.VirtualMachine) {
 		table.DescribeTable("should be able to reach", func(destination string) {
 			var cmdCheck, addrShow, addr string
+
+			inboundVM := *inboundVMRef
+			outboundVM := *outboundVMRef
 
 			// assuming pod network is of standard MTU = 1500 (minus 50 bytes for vxlan overhead)
 			expectedMtu := 1450
@@ -331,6 +358,13 @@ var _ = Describe("Networking", func() {
 				Expect(virtClient.CoreV1().Services(inboundVM.Namespace).Delete(inboundVM.Spec.Subdomain, &v13.DeleteOptions{})).To(Succeed())
 			})
 		})
+	}
+
+	Context("VirtualMachine attached to implicit pod network", func() {
+		declareConnectivityCases(&inboundVM, &outboundVM)
+	})
+	Context("VirtualMachine attached to explicit pod network", func() {
+		declareConnectivityCases(&inboundVM_podnet, &outboundVM_podnet)
 	})
 
 	checkNetworkVendor := func(vm *v1.VirtualMachine, expectedVendor string, prompt string) {
