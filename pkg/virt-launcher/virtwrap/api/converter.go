@@ -496,6 +496,8 @@ func Convert_v1_VirtualMachine_To_api_Domain(vm *v1.VirtualMachine, domain *Doma
 		},
 		Type: "bridge",
 		Source: InterfaceSource{
+			// If it is ever allowed to change, we may need to adjust
+			// findPodInterface
 			Bridge: DefaultBridgeName,
 		}},
 	}
