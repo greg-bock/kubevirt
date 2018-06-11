@@ -154,7 +154,7 @@ func setDefaults_DiskFromMachineType(obj *VirtualMachine) {
 	}
 }
 
-func getNumberOfPodInterfaces(spec *VirtualMachineSpec) int {
+func GetNumberOfPodInterfaces(spec *VirtualMachineSpec) int {
 	nPodInterfaces := 0
 	for _, net := range spec.Networks {
 		if net.Pod != nil {
@@ -170,8 +170,8 @@ func getNumberOfPodInterfaces(spec *VirtualMachineSpec) int {
 }
 
 func setDefaults_NetworkInterface(obj *VirtualMachine) {
-	if getNumberOfPodInterfaces(&obj.Spec) == 0 {
-		iface, net := getDefaultInterfaceAndNetwork()
+	if GetNumberOfPodInterfaces(&obj.Spec) == 0 {
+		iface, net := GetDefaultInterfaceAndNetwork()
 		obj.Spec.Domain.Devices.Interfaces = append(obj.Spec.Domain.Devices.Interfaces, *iface)
 		obj.Spec.Networks = append(obj.Spec.Networks, *net)
 	}
@@ -186,7 +186,7 @@ func getRandomString(length int) string {
 	return string(s)
 }
 
-func getDefaultInterfaceAndNetwork() (*Interface, *Network) {
+func GetDefaultInterfaceAndNetwork() (*Interface, *Network) {
 	iface := DefaultNetworkInterface()
 	net := DefaultPodNetwork()
 
@@ -200,7 +200,7 @@ func getDefaultInterfaceAndNetwork() (*Interface, *Network) {
 }
 
 func DefaultNetworkInterface() *Interface {
-	// TODO:(ihar) switch consumers to getDefaultInterfaceAndNetwork
+	// TODO:(ihar) switch consumers to GetDefaultInterfaceAndNetwork
 	iface := &Interface{
 		Name: "default",
 		InterfaceBindingMethod: InterfaceBindingMethod{
@@ -211,7 +211,7 @@ func DefaultNetworkInterface() *Interface {
 }
 
 func DefaultPodNetwork() *Network {
-	// TODO:(ihar) switch consumers to getDefaultInterfaceAndNetwork
+	// TODO:(ihar) switch consumers to GetDefaultInterfaceAndNetwork
 	defaultNet := &Network{
 		Name: "default",
 		NetworkSource: NetworkSource{

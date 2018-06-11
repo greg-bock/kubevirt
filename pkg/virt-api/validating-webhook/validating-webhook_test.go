@@ -572,6 +572,18 @@ var _ = Describe("Validating Webhook", func() {
 			Expect(len(causes)).To(Equal(1))
 			Expect(causes[0].Field).To(Equal("fake.domain.devices.networks[0].pod"))
 		})
+		It("should reject specs with multiple pod interfaces", func() {
+			vm := v1.NewMinimalVM("testvm")
+			for i := 1; i < 3; i++ {
+				iface, net := v1.GetDefaultInterfaceAndNetwork()
+				vm.Spec.Domain.Devices.Interfaces = append(vm.Spec.Domain.Devices.Interfaces, *iface)
+				vm.Spec.Networks = append(vm.Spec.Networks, *net)
+			}
+
+			causes := validateVirtualMachineSpec(k8sfield.NewPath("fake"), &vm.Spec)
+			Expect(len(causes)).To(Equal(1))
+			Expect(causes[0].Field).To(Equal("fake.interfaces"))
+		})
 
 	})
 	Context("with Volume", func() {
