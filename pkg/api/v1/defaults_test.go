@@ -285,3 +285,26 @@ var _ = Describe("Function isPodInterfaceConfigured()", func() {
 		Expect(isPodInterfaceConfigured(vm)).To(BeTrue())
 	})
 })
+
+var _ = Describe("Function setDefaults_NetworkInterface()", func() {
+
+	It("should append pod interface", func() {
+		vm := &VirtualMachine{}
+		net := Network{
+			Name: "testnet",
+		}
+		iface := Interface{Name: net.Name}
+		vm.Spec.Networks = []Network{net}
+		vm.Spec.Domain.Devices.Interfaces = []Interface{iface}
+
+		setDefaults_NetworkInterface(vm)
+		Expect(len(vm.Spec.Domain.Devices.Interfaces)).To(Equal(2))
+		Expect(vm.Spec.Domain.Devices.Interfaces[0].Name).To(Equal("testnet"))
+		Expect(vm.Spec.Networks[0].Name).To(Equal("testnet"))
+		Expect(vm.Spec.Networks[0].Pod).To(BeNil())
+
+		Expect(vm.Spec.Domain.Devices.Interfaces[1].Name).To(Equal("default"))
+		Expect(vm.Spec.Networks[1].Name).To(Equal("default"))
+		Expect(vm.Spec.Networks[1].Pod).ToNot(BeNil())
+	})
+})
