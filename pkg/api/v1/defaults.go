@@ -154,22 +154,23 @@ func setDefaults_DiskFromMachineType(obj *VirtualMachine) {
 	}
 }
 
-func isPodInterfaceConfigured(obj *VirtualMachine) bool {
+func getNumberOfPodInterfaces(obj *VirtualMachine) int {
+	nPodInterfaces := 0
 	for _, net := range obj.Spec.Networks {
 		if net.Pod != nil {
 			for _, iface := range obj.Spec.Domain.Devices.Interfaces {
 				if iface.Name == net.Name {
-					return true
+					nPodInterfaces++
+					break // we maintain 1-to-1 relationship between networks and interfaces
 				}
 			}
-			return false
 		}
 	}
-	return false
+	return nPodInterfaces
 }
 
 func setDefaults_NetworkInterface(obj *VirtualMachine) {
-	if !isPodInterfaceConfigured(obj) {
+	if getNumberOfPodInterfaces(obj) == 0 {
 		iface, net := getDefaultInterfaceAndNetwork()
 		obj.Spec.Domain.Devices.Interfaces = append(obj.Spec.Domain.Devices.Interfaces, *iface)
 		obj.Spec.Networks = append(obj.Spec.Networks, *net)
