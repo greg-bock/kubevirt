@@ -20,6 +20,8 @@
 package network
 
 import (
+	"strings"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -48,10 +50,14 @@ var _ = Describe("Network", func() {
 			domain := &api.Domain{}
 			vm := newVM("testnamespace", "testVmName")
 			api.SetObjectDefaults_Domain(domain)
-			iface := v1.DefaultNetworkInterface()
-			defaultNet := v1.DefaultPodNetwork()
 
-			mockNetworkInterface.EXPECT().Plug(iface, defaultNet, domain)
+			mockNetworkInterface.EXPECT().
+				Plug(gomock.Any(), gomock.Any(), domain).
+				Do(func(iface *v1.Interface, net *v1.Network, domain *api.Domain) {
+					Expect(strings.HasPrefix(iface.Name, "default-")).To(BeTrue())
+					Expect(strings.HasPrefix(net.Name, "default-")).To(BeTrue())
+					Expect(net.Name).To(Equal(iface.Name))
+				})
 			err := SetupNetworkInterfaces(vm, domain)
 			Expect(err).To(BeNil())
 		})

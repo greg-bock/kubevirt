@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"fmt"
+	"math/rand"
 	"strings"
 
 	"github.com/pborman/uuid"
@@ -168,12 +170,36 @@ func isPodInterfaceConfigured(obj *VirtualMachine) bool {
 
 func setDefaults_NetworkInterface(obj *VirtualMachine) {
 	if !isPodInterfaceConfigured(obj) {
-		obj.Spec.Domain.Devices.Interfaces = append(obj.Spec.Domain.Devices.Interfaces, *DefaultNetworkInterface())
-		obj.Spec.Networks = append(obj.Spec.Networks, *DefaultPodNetwork())
+		iface, net := getDefaultInterfaceAndNetwork()
+		obj.Spec.Domain.Devices.Interfaces = append(obj.Spec.Domain.Devices.Interfaces, *iface)
+		obj.Spec.Networks = append(obj.Spec.Networks, *net)
 	}
 }
 
+func getRandomString(length int) string {
+	runes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	s := make([]rune, length)
+	for i := range s {
+		s[i] = runes[rand.Intn(len(runes))]
+	}
+	return string(s)
+}
+
+func getDefaultInterfaceAndNetwork() (*Interface, *Network) {
+	iface := DefaultNetworkInterface()
+	net := DefaultPodNetwork()
+
+	postfixLength := 8
+	postfix := getRandomString(postfixLength)
+	name := fmt.Sprintf("default-%s", postfix)
+	iface.Name = name
+	net.Name = name
+
+	return iface, net
+}
+
 func DefaultNetworkInterface() *Interface {
+	// TODO:(ihar) switch consumers to getDefaultInterfaceAndNetwork
 	iface := &Interface{
 		Name: "default",
 		InterfaceBindingMethod: InterfaceBindingMethod{
@@ -184,6 +210,7 @@ func DefaultNetworkInterface() *Interface {
 }
 
 func DefaultPodNetwork() *Network {
+	// TODO:(ihar) switch consumers to getDefaultInterfaceAndNetwork
 	defaultNet := &Network{
 		Name: "default",
 		NetworkSource: NetworkSource{

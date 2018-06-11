@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -303,8 +305,9 @@ var _ = Describe("Function setDefaults_NetworkInterface()", func() {
 		Expect(vm.Spec.Networks[0].Name).To(Equal("testnet"))
 		Expect(vm.Spec.Networks[0].Pod).To(BeNil())
 
-		Expect(vm.Spec.Domain.Devices.Interfaces[1].Name).To(Equal("default"))
-		Expect(vm.Spec.Networks[1].Name).To(Equal("default"))
+		defaultName := vm.Spec.Domain.Devices.Interfaces[1].Name
+		Expect(strings.HasPrefix(defaultName, "default-")).To(BeTrue())
+		Expect(vm.Spec.Networks[1].Name).To(Equal(defaultName))
 		Expect(vm.Spec.Networks[1].Pod).ToNot(BeNil())
 	})
 })
