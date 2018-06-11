@@ -245,3 +245,43 @@ var _ = Describe("Defaults", func() {
 		Expect(*timer.Hyperv.Enabled).To(BeTrue())
 	})
 })
+
+var _ = Describe("Function isPodInterfaceConfigured()", func() {
+
+	It("should work for empty network list", func() {
+		vm := &VirtualMachine{}
+		Expect(isPodInterfaceConfigured(vm)).To(BeFalse())
+	})
+
+	It("should work for non-empty network list without pod network", func() {
+		vm := &VirtualMachine{}
+		net := Network{}
+		vm.Spec.Networks = []Network{net}
+		Expect(isPodInterfaceConfigured(vm)).To(BeFalse())
+	})
+
+	It("should work for pod network with missing pod interface", func() {
+		vm := &VirtualMachine{}
+		net := Network{
+			NetworkSource: NetworkSource{
+				Pod: &PodNetwork{},
+			},
+		}
+		vm.Spec.Networks = []Network{net}
+		Expect(isPodInterfaceConfigured(vm)).To(BeFalse())
+	})
+
+	It("should work for valid pod network / interface combination", func() {
+		vm := &VirtualMachine{}
+		net := Network{
+			NetworkSource: NetworkSource{
+				Pod: &PodNetwork{},
+			},
+			Name: "testnet",
+		}
+		iface := Interface{Name: net.Name}
+		vm.Spec.Networks = []Network{net}
+		vm.Spec.Domain.Devices.Interfaces = []Interface{iface}
+		Expect(isPodInterfaceConfigured(vm)).To(BeTrue())
+	})
+})
