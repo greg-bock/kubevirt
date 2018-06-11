@@ -251,30 +251,30 @@ var _ = Describe("Defaults", func() {
 var _ = Describe("Function getNumberOfPodInterfaces()", func() {
 
 	It("should work for empty network list", func() {
-		vm := &VirtualMachine{}
-		Expect(getNumberOfPodInterfaces(vm)).To(Equal(0))
+		spec := &VirtualMachineSpec{}
+		Expect(getNumberOfPodInterfaces(spec)).To(Equal(0))
 	})
 
 	It("should work for non-empty network list without pod network", func() {
-		vm := &VirtualMachine{}
+		spec := &VirtualMachineSpec{}
 		net := Network{}
-		vm.Spec.Networks = []Network{net}
-		Expect(getNumberOfPodInterfaces(vm)).To(Equal(0))
+		spec.Networks = []Network{net}
+		Expect(getNumberOfPodInterfaces(spec)).To(Equal(0))
 	})
 
 	It("should work for pod network with missing pod interface", func() {
-		vm := &VirtualMachine{}
+		spec := &VirtualMachineSpec{}
 		net := Network{
 			NetworkSource: NetworkSource{
 				Pod: &PodNetwork{},
 			},
 		}
-		vm.Spec.Networks = []Network{net}
-		Expect(getNumberOfPodInterfaces(vm)).To(Equal(0))
+		spec.Networks = []Network{net}
+		Expect(getNumberOfPodInterfaces(spec)).To(Equal(0))
 	})
 
 	It("should work for valid pod network / interface combination", func() {
-		vm := &VirtualMachine{}
+		spec := &VirtualMachineSpec{}
 		net := Network{
 			NetworkSource: NetworkSource{
 				Pod: &PodNetwork{},
@@ -282,13 +282,13 @@ var _ = Describe("Function getNumberOfPodInterfaces()", func() {
 			Name: "testnet",
 		}
 		iface := Interface{Name: net.Name}
-		vm.Spec.Networks = []Network{net}
-		vm.Spec.Domain.Devices.Interfaces = []Interface{iface}
-		Expect(getNumberOfPodInterfaces(vm)).To(Equal(1))
+		spec.Networks = []Network{net}
+		spec.Domain.Devices.Interfaces = []Interface{iface}
+		Expect(getNumberOfPodInterfaces(spec)).To(Equal(1))
 	})
 
 	It("should work for multiple pod network / interface combinations", func() {
-		vm := &VirtualMachine{}
+		spec := &VirtualMachineSpec{}
 		net1 := Network{
 			NetworkSource: NetworkSource{
 				Pod: &PodNetwork{},
@@ -303,9 +303,9 @@ var _ = Describe("Function getNumberOfPodInterfaces()", func() {
 			Name: "testnet2",
 		}
 		iface2 := Interface{Name: net2.Name}
-		vm.Spec.Networks = []Network{net1, net2}
-		vm.Spec.Domain.Devices.Interfaces = []Interface{iface1, iface2}
-		Expect(getNumberOfPodInterfaces(vm)).To(Equal(2))
+		spec.Networks = []Network{net1, net2}
+		spec.Domain.Devices.Interfaces = []Interface{iface1, iface2}
+		Expect(getNumberOfPodInterfaces(spec)).To(Equal(2))
 	})
 })
 
