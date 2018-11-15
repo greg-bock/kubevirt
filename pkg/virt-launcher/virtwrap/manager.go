@@ -421,7 +421,7 @@ func getSRIOVPCIAddresses(ifaces []v1.Interface) map[string][]string {
 			varName := resourceNameToEnvvar(resourceName)
 			pciAddrString, isSet := os.LookupEnv(varName)
 			if isSet {
-				addrs := strings.Split(pciAddrString, ",")
+				addrs := strings.Split(pciAddrString, " ")
 				naddrs := len(addrs)
 				if naddrs > 0 {
 					if addrs[naddrs-1] == "" {
