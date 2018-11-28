@@ -296,7 +296,7 @@ var _ = Describe("getSRIOVPCIAddresses", func() {
 		Expect(addrs["testnet"][0]).To(Equal("0000:81:11.1"))
 	})
 	It("returns multiple PCI addresses", func() {
-		os.Setenv("PCIDEVICE_INTEL_COM_TESTNET_POOL", "0000:81:11.1 0001:02:00.0")
+		os.Setenv("PCIDEVICE_INTEL_COM_TESTNET_POOL", "0000:81:11.1,0001:02:00.0")
 		os.Setenv("KUBEVIRT_RESOURCE_NAME_testnet", "intel.com/testnet_pool")
 		addrs := getSRIOVPCIAddresses(getSRIOVInterfaceList())
 		Expect(len(addrs["testnet"])).To(Equal(2))
@@ -316,4 +316,5 @@ func newVMI(namespace string, name string) *v1.VirtualMachineInstance {
 
 func StubOutNetworkForTest() {
 	network.SetupPodNetwork = func(vm *v1.VirtualMachineInstance, domain *api.Domain) error { return nil }
+	p
 }
