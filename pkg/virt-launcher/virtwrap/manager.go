@@ -319,9 +319,19 @@ func (l *LibvirtDomainManager) preStartHook(vmi *v1.VirtualMachineInstance, doma
 	// generate cloud-init data
 	cloudInitData := cloudinit.GetCloudInitNoCloudSource(vmi)
 	if cloudInitData != nil {
+		// get cloud-init network information
+		cloudInitNetworkInfo, err := network.GenNetworkFile(vmi)
+		if err != nil {
+			return domain, err
+		}
+
+		if len(cloudInitNetworkInfo) > 0 {
+			cloudInitData.NetworkData = string(cloudInitNetworkInfo)
+		}
+
 		hostname := dns.SanitizeHostname(vmi)
 
-		err := cloudinit.GenerateLocalData(vmi.Name, hostname, vmi.Namespace, cloudInitData)
+		err = cloudinit.GenerateLocalData(vmi.Name, hostname, vmi.Namespace, cloudInitData)
 		if err != nil {
 			return domain, err
 		}
@@ -421,7 +431,7 @@ func getSRIOVPCIAddresses(ifaces []v1.Interface) map[string][]string {
 			varName := resourceNameToEnvvar(resourceName)
 			pciAddrString, isSet := os.LookupEnv(varName)
 			if isSet {
-				addrs := strings.Split(pciAddrString, ",")
+				addrs := strings.Split(pciAddrString, " ")
 				naddrs := len(addrs)
 				if naddrs > 0 {
 					if addrs[naddrs-1] == "" {
