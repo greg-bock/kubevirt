@@ -796,6 +796,7 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 		for idx, network := range spec.Networks {
 
 			cniTypesCount := 0
+			multusDefaultCount := 0
 			// network name not needed by default
 			networkNameExistsOrNotNeeded := true
 
@@ -808,6 +809,9 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 				cniTypesCount++
 				multusExists = true
 				networkNameExistsOrNotNeeded = network.Multus.NetworkName != ""
+				if network.NetworkSource.Multus.Default {
+					multusDefaultCount++
+				}
 			}
 
 			if network.NetworkSource.Genie != nil {
@@ -832,6 +836,14 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 				causes = append(causes, metav1.StatusCause{
 					Type:    metav1.CauseTypeFieldValueRequired,
 					Message: fmt.Sprintf("cannot combine Genie with other CNIs across networks"),
+					Field:   field.Child("networks").Index(idx).String(),
+				})
+			}
+
+			if multusDefaultCount > 1 {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueRequired,
+					Message: fmt.Sprintf("Multus CNI should only have one default network"),
 					Field:   field.Child("networks").Index(idx).String(),
 				})
 			}
