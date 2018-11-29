@@ -56,7 +56,12 @@ func getSriovNetworkInfo(vmi *v1.VirtualMachineInstance) ([]VIF, error) {
 			numberOfSources++
 		}
 		if network.Multus != nil {
-			cniNetworks[network.Name] = len(cniNetworks) + 1
+			if network.Multus.Default {
+				// default network is eth0
+				cniNetworks[network.Name] = 0
+			} else {
+				cniNetworks[network.Name] = len(cniNetworks) + 1
+			}
 			numberOfSources++
 		}
 		if network.Genie != nil {
@@ -81,7 +86,12 @@ func getSriovNetworkInfo(vmi *v1.VirtualMachineInstance) ([]VIF, error) {
 			prefix := ""
 			// no error check, we assume that CNI type was set correctly
 			if net.Multus != nil {
-				prefix = "net"
+				if net.Multus.Default {
+					// Default network is eth0
+					prefix = "eth"
+				} else {
+					prefix = "net"
+				}
 			} else if net.Genie != nil {
 				prefix = "eth"
 			}
