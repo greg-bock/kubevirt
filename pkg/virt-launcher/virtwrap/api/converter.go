@@ -878,6 +878,7 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 
 	networks := map[string]*v1.Network{}
 	cniNetworks := map[string]int{}
+	multusNetworkIndex := 1
 	for _, network := range vmi.Spec.Networks {
 		numberOfSources := 0
 		if network.Pod != nil {
@@ -888,7 +889,8 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 				// default network is eth0
 				cniNetworks[network.Name] = 0
 			} else {
-				cniNetworks[network.Name] = len(cniNetworks) + 1
+				cniNetworks[network.Name] = multusNetworkIndex
+				multusNetworkIndex++
 			}
 			numberOfSources++
 		}

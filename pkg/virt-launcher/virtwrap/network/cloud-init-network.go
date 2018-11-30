@@ -48,6 +48,7 @@ type CloudInitConfig struct {
 func getSriovNetworkInfo(vmi *v1.VirtualMachineInstance) ([]VIF, error) {
 	networks := map[string]*v1.Network{}
 	cniNetworks := map[string]int{}
+	multusNetworkIndex := 1
 	var sriovVifs []VIF
 
 	for _, network := range vmi.Spec.Networks {
@@ -60,7 +61,8 @@ func getSriovNetworkInfo(vmi *v1.VirtualMachineInstance) ([]VIF, error) {
 				// default network is eth0
 				cniNetworks[network.Name] = 0
 			} else {
-				cniNetworks[network.Name] = len(cniNetworks) + 1
+				cniNetworks[network.Name] = multusNetworkIndex
+				multusNetworkIndex++
 			}
 			numberOfSources++
 		}
