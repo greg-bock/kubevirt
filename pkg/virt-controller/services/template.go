@@ -60,7 +60,7 @@ const CAP_SYS_NICE = "SYS_NICE"
 const LibvirtStartupDelay = 10
 
 const MULTUS_RESOURCE_NAME_ANNOTATION = "k8s.v1.cni.cncf.io/resourceName"
-const MULTUS_DEFAULT_NETWORK_CNI_ANNOTATION = "multus-cni.io/v1/default-network"
+const MULTUS_DEFAULT_NETWORK_CNI_ANNOTATION = "v1.multus-cni.io/default-network"
 
 type TemplateService interface {
 	RenderLaunchManifest(*v1.VirtualMachineInstance) (*k8sv1.Pod, error)
