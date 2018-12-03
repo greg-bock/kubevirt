@@ -112,22 +112,6 @@ var _ = Describe("Multus Networking", func() {
 		// Create two sriov networks referring to the same resource name
 		result = virtClient.RestClient().
 			Post().
-			RequestURI(fmt.Sprintf(postUrl, tests.NamespaceTestAlternative, "ptp-conf-2")).
-			Body([]byte(fmt.Sprintf(ptpConfCRD, "ptp-conf-2", tests.NamespaceTestAlternative))).
-			Do()
-		Expect(result.Error()).NotTo(HaveOccurred())
-
-		// Create two sriov networks referring to the same resource name
-		result = virtClient.RestClient().
-			Post().
-			RequestURI(fmt.Sprintf(postUrl, tests.NamespaceTestAlternative, "ptp-conf-2")).
-			Body([]byte(fmt.Sprintf(ptpConfCRD, "ptp-conf-2", tests.NamespaceTestAlternative))).
-			Do()
-		Expect(result.Error()).NotTo(HaveOccurred())
-
-		// Create two sriov networks referring to the same resource name
-		result = virtClient.RestClient().
-			Post().
 			RequestURI(fmt.Sprintf(postUrl, tests.NamespaceTestDefault, "sriov")).
 			Body([]byte(fmt.Sprintf(sriovConfCRD, "sriov", tests.NamespaceTestDefault))).
 			Do()
