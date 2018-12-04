@@ -319,14 +319,20 @@ func (l *LibvirtDomainManager) preStartHook(vmi *v1.VirtualMachineInstance, doma
 	// generate cloud-init data
 	cloudInitData := cloudinit.GetCloudInitNoCloudSource(vmi)
 	if cloudInitData != nil {
-		// get cloud-init network information
-		cloudInitNetworkInfo, err := network.GenNetworkFile(vmi)
-		if err != nil {
-			return domain, err
-		}
+		if cloudInitData.NetworkData != "" {
+			// get cloud-init network information
+			logger.Info("Starting cloud-init network discovery.")
+			cloudInitNetworkInfo, err := network.GenNetworkFile(vmi)
 
-		if len(cloudInitNetworkInfo) > 0 {
-			cloudInitData.NetworkData = string(cloudInitNetworkInfo)
+			if err != nil {
+				return domain, err
+			}
+
+			if len(cloudInitNetworkInfo) > 0 {
+				cloudInitData.NetworkData = string(cloudInitNetworkInfo)
+			}
+		} else {
+			logger.Info("Skipping cloud-init network discovery: NetworkData already defined in VMI spec.")
 		}
 
 		hostname := dns.SanitizeHostname(vmi)
