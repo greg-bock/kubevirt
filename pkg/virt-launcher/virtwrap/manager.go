@@ -318,17 +318,21 @@ func (l *LibvirtDomainManager) preStartHook(vmi *v1.VirtualMachineInstance, doma
 
 	// generate cloud-init data
 	cloudInitData := cloudinit.GetCloudInitNoCloudSource(vmi)
-	if cloudInitData != nil && cloudInitData.NetworkData != "" {
-		// get cloud-init network information
-		logger.Info("Starting cloud-init network discovery.")
-		cloudInitNetworkInfo, err := network.GenNetworkFile(vmi)
+	if cloudInitData != nil {
+		if cloudInitData.NetworkData != "" {
+			// get cloud-init network information
+			logger.Info("Starting cloud-init network discovery.")
+			cloudInitNetworkInfo, err := network.GenNetworkFile(vmi)
 
-		if err != nil {
-			return domain, err
-		}
+			if err != nil {
+				return domain, err
+			}
 
-		if len(cloudInitNetworkInfo) > 0 {
-			cloudInitData.NetworkData = string(cloudInitNetworkInfo)
+			if len(cloudInitNetworkInfo) > 0 {
+				cloudInitData.NetworkData = string(cloudInitNetworkInfo)
+			}
+		} else {
+			logger.Info("Skipping cloud-init network discovery: NetworkData already defined in VMI spec.")
 		}
 
 		hostname := dns.SanitizeHostname(vmi)
@@ -337,8 +341,6 @@ func (l *LibvirtDomainManager) preStartHook(vmi *v1.VirtualMachineInstance, doma
 		if err != nil {
 			return domain, err
 		}
-	} else {
-		logger.Info("Skipping cloud-init network discovery:  CloudInitNoCloud volume not present or NetworkData already defined in VMI spec.")
 	}
 
 	// setup networking
